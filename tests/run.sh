@@ -32,6 +32,14 @@ for fx in "$root"/fixtures/*/; do
     bad "lsp plugin not enabled"
   fi
 
+  bunonly() { echo "{\"tool_input\":{\"command\":\"$1\"}}" | .claude/hooks/bun-only.sh >/dev/null 2>&1; }
+  for c in "npm install x" "cd a && npx foo" "yarn add x"; do
+    if bunonly "$c"; then bad "bun-only allowed: $c"; else ok "bun-only blocks: $c"; fi
+  done
+  for c in "bun add x" "grep npm README.md" "bunx oxlint ."; do
+    if bunonly "$c"; then ok "bun-only allows: $c"; else bad "bun-only blocked: $c"; fi
+  done
+
   expect 0 src/good.ts ""
   expect 2 src/bad.ts "No \`as\` casts"
   expect 2 src/bad.ts "No console"
@@ -65,6 +73,12 @@ for fx in "$root"/fixtures/*/; do
   if [[ $code == 2 && $out == *"Duplicated code"* ]]; then ok "check-all blocks duplication"; else bad "duplication: exit $code"; echo "$out" | tail -5; fi
   rm src/dup1.ts src/dup2.ts
   cp "$fx/src/index.ts" src/index.ts
+
+  cp package.json package.json.bak
+  jq '.dependencies = {"left-pad": "^1.3.0"}' package.json.bak > package.json
+  out=$(CLAUDE_PROJECT_DIR=$dir .claude/hooks/check-all.sh 2>&1) && code=0 || code=$?
+  if [[ $code == 2 && $out == *"Pin the exact version"* ]]; then ok "check-all blocks version ranges"; else bad "pins: exit $code"; echo "$out" | tail -5; fi
+  mv package.json.bak package.json
 
   echo 'export const orphan = 1;' > src/orphan.ts
   out=$(CLAUDE_PROJECT_DIR=$dir .claude/hooks/check-all.sh 2>&1) && code=0 || code=$?

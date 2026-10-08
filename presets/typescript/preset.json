@@ -2,22 +2,30 @@
   "detect": [
     "tsconfig.json"
   ],
-  "deps": "npm i -D typescript oxlint oxlint-tsgolint oxfmt jscpd knip",
-  "global": "npm i -g typescript-language-server typescript",
+  "deps": "bun add -d --exact typescript oxlint oxlint-tsgolint oxfmt fallow",
   "settings": {
+    "extraKnownMarketplaces": {
+      "agent-harness": {
+        "source": {
+          "source": "github",
+          "repo": "RichardBray/agent-harness"
+        }
+      }
+    },
     "enabledPlugins": {
-      "typescript-lsp@claude-plugins-official": true
+      "ts7-lsp@agent-harness": true
     }
   },
   "hooks": {
     "lint_match": "\\.(ts|tsx|mts|cts)$",
-    "format": "npx oxfmt",
-    "lint": "npx oxlint --type-aware --deny-warnings",
+    "format": "bunx oxfmt",
+    "lint": "bunx oxlint --type-aware --deny-warnings",
     "check": [
-      "npx tsc --noEmit --strict --noUncheckedIndexedAccess",
-      "npx jscpd --exit-code 1 --ignore '**/node_modules/**,**/dist/**' . || { echo 'Duplicated code: extract it into one shared function and reuse it.'; exit 1; }",
-      "npx knip --no-progress --no-config-hints || { echo 'Unused code: delete it, or import it from an entry point if it is meant to be used.'; exit 1; }",
-      "npx oxlint --type-aware --deny-warnings ."
+      "bunx tsc --noEmit --strict --noUncheckedIndexedAccess",
+      "bunx oxlint --type-aware --deny-warnings .",
+      "bunx fallow dead-code || { echo 'Unused code: delete it, or import it from an entry point if it is meant to be used.'; exit 1; }",
+      "bunx fallow dupes --threshold 0.01 || { echo 'Duplicated code: extract it into one shared function and reuse it.'; exit 1; }",
+      ".harness/check-pins.sh"
     ]
   }
 }

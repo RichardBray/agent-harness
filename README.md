@@ -10,14 +10,15 @@ cd my-project
 
 | When | Runs |
 |---|---|
-| After each edit | LSP diagnostics, oxfmt, oxlint on that file |
-| Before the agent stops | `tsc`, oxlint, jscpd (duplication), knip (unused code) |
+| Before a shell command | blocks npm/npx/yarn/pnpm: use Bun |
+| After each edit | TypeScript 7 LSP diagnostics, oxfmt, oxlint on that file |
+| Before the agent stops | `tsc`, oxlint, fallow (unused and duplicated code), exact-pinned versions and `bun.lock` |
 
 Copies into the project (skips existing files), then prints the install commands:
 - `.claude/hooks/`, `.claude/harness.json`: the hooks and the commands they run
-- `.claude/settings.json`: hook wiring and the LSP plugin
-- `.oxlintrc.json`, `.harness/rules.mjs` (custom rules), `knip.json`
+- `.claude/settings.json`: hook wiring and the `ts7-lsp` plugin from this repo's marketplace
+- `.oxlintrc.json`, `.fallowrc.json`, `.harness/` (custom rules, pin check)
 
 Review and commit them. Each project adds its own rules from there.
 
-Test: `tests/run.sh`. Requires `jq`.
+Test: `tests/run.sh`. Requires `bun` and `jq`.

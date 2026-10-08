@@ -1,0 +1,38 @@
+{
+  "name": "agent-harness",
+  "owner": {
+    "name": "Richard Bray"
+  },
+  "metadata": {
+    "description": "Plugins used by agent-harness presets"
+  },
+  "plugins": [
+    {
+      "name": "ts7-lsp",
+      "description": "TypeScript 7 language server: the project's own `tsc --lsp`",
+      "version": "1.0.0",
+      "source": "./plugins/ts7-lsp",
+      "strict": false,
+      "lspServers": {
+        "typescript": {
+          "command": "bunx",
+          "args": [
+            "tsc",
+            "--lsp",
+            "--stdio"
+          ],
+          "extensionToLanguage": {
+            ".ts": "typescript",
+            ".tsx": "typescriptreact",
+            ".mts": "typescript",
+            ".cts": "typescript",
+            ".js": "javascript",
+            ".jsx": "javascriptreact",
+            ".mjs": "javascript",
+            ".cjs": "javascript"
+          }
+        }
+      }
+    }
+  ]
+}
