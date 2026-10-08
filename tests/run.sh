@@ -53,6 +53,10 @@ for fx in "$root"/fixtures/*/; do
     if bunonly "$c"; then ok "bun-only allows: $c"; else bad "bun-only blocked: $c"; fi
   done
 
+  prreview() { echo "{\"tool_input\":{\"command\":\"$1\"}}" | .claude/hooks/pr-review.sh 2>&1; }
+  if out=$(prreview "gh pr create --fill"); then bad "pr-review silent on gh pr create"; elif [[ $out == *"codex review"* ]]; then ok "pr-review asks for review"; else bad "pr-review message"; fi
+  if prreview "gh pr view" >/dev/null; then ok "pr-review ignores other gh"; else bad "pr-review fired on gh pr view"; fi
+
   source "$root/tests/$stack.sh"
 
   cd "$root"
