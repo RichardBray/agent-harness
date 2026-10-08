@@ -2,5 +2,5 @@
   "detect": ["astro.config.*"],
   "scope": "dir",
   "requires": "typescript",
-  "check": ["\"$ROOT\"/.claude/hooks/check-og.sh"]
+  "check": ["\"$ROOT\"/.harness/hooks/check-og.sh"]
 }

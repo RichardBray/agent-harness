@@ -47,6 +47,6 @@ passes
 printf 'export const c = JSON.parse("1") as string;\n' >> src/legacy.ts
 echo 'export { c } from "./legacy.js";' >> src/index.ts
 blocks "New issues"
-rm -rf .claude/baseline src/legacy.ts
+rm -rf .harness/baseline src/legacy.ts
 cp "$fx/src/index.ts" src/index.ts
 passes

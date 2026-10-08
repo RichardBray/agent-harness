@@ -56,9 +56,10 @@ init() {
   local entries; entries=$(plan "${1:-}")
   [ -n "$entries" ] || { echo "no preset matches; see: harness list" >&2; exit 1; }
 
-  for f in "$root"/core/hooks/*.sh; do add "$f" ".claude/hooks/$(basename "$f")"; done
+  for f in "$root"/core/hooks/*.sh; do add "$f" ".harness/hooks/$(basename "$f")"; done
 
   local s=.claude/settings.json
+  mkdir -p .claude
   if grep -qs lint-changed.sh "$s"; then
     echo "skip $s hooks (present)"
   else
@@ -93,7 +94,7 @@ init() {
 
   local t; t=$(mktemp)
   jq -n --argjson e "$edits" --argjson c "$checks" '{edit: $e, check: $c}' > "$t"
-  add "$t" .claude/harness.json; rm "$t"
+  add "$t" .harness/harness.json; rm "$t"
 
   if grep -qs '^## Testing' CLAUDE.md; then
     echo "skip CLAUDE.md (has ## Testing)"
@@ -102,20 +103,25 @@ init() {
     echo "add  CLAUDE.md ## Testing"
   fi
 
+  if git check-ignore -q .claude/settings.json 2>/dev/null; then
+    echo "warn: .claude/settings.json is gitignored, so other clones won't get the hooks."
+    echo "      In .gitignore, replace \`.claude/\` with \`.claude/*\` and add \`!.claude/settings.json\`."
+  fi
+
   printf '%s' "$runs"
 }
 
 baseline() {
-  [ -f .claude/harness.json ] || { echo "run harness init first" >&2; exit 1; }
+  [ -f .harness/harness.json ] || { echo "run harness init first" >&2; exit 1; }
   export ROOT=$PWD
-  rm -rf .claude/baseline
-  mkdir -p .claude/baseline
+  rm -rf .harness/baseline
+  mkdir -p .harness/baseline
   local cmd out
   while IFS= read -r cmd; do
     out=$(bash -c "$cmd" 2>&1) && continue
-    sed -E 's/[0-9]+/N/g' <<< "$out" | sort > ".claude/baseline/$(printf %s "$cmd" | shasum | cut -c1-12)"
-    echo "baselined $(wc -l < ".claude/baseline/$(printf %s "$cmd" | shasum | cut -c1-12)" | tr -d ' ') lines: $cmd"
-  done < <(jq -r '.check[]' .claude/harness.json)
+    sed -E 's/[0-9]+/N/g' <<< "$out" | sort > ".harness/baseline/$(printf %s "$cmd" | shasum | cut -c1-12)"
+    echo "baselined $(wc -l < ".harness/baseline/$(printf %s "$cmd" | shasum | cut -c1-12)" | tr -d ' ') lines: $cmd"
+  done < <(jq -r '.check[]' .harness/harness.json)
 }
 
 case ${1:-} in

@@ -1,4 +1,4 @@
-if jq -e '[.edit[].match] | any(startswith("^packages/engine/"))' .claude/harness.json >/dev/null; then ok "rust preset scoped to packages/engine"; else bad "rust not scoped"; fi
+if jq -e '[.edit[].match] | any(startswith("^packages/engine/"))' .harness/harness.json >/dev/null; then ok "rust preset scoped to packages/engine"; else bad "rust not scoped"; fi
 if [[ -e packages/engine/clippy.toml && ! -e clippy.toml ]]; then ok "rust files in crate dir"; else bad "rust files misplaced"; fi
 
 expect 0 packages/app/src/index.ts ""

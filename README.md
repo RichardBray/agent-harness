@@ -27,6 +27,6 @@ Rust: clippy runs pedantic and bans `unwrap`/`expect`/`dbg!`/`todo!` outside tes
 
 Existing codebase with lots of failures? Run `harness baseline`: the stop check then only blocks on new issues, while per-edit lint still flags every issue in files the agent touches, so old ones get fixed as files are edited. Re-run it to shrink the baseline.
 
-`init` copies hooks, configs and `.claude/harness.json` (the commands the hooks run), skips files that exist, and prints install commands. Review and commit them; each project adds its own rules from there.
+`init` copies hooks, configs and `.harness/harness.json` (the commands the hooks run), skips files that exist, and prints install commands. Review and commit them; each project adds its own rules from there.
 
 Test: `tests/run.sh`. Requires `bun`, `cargo` and `jq`.

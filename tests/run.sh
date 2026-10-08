@@ -12,7 +12,7 @@ for fx in "$root"/fixtures/*/; do
 
   ok() { echo "ok   $stack $1"; }
   bad() { echo "FAIL $stack $1"; fail=1; }
-  lint() { echo "{\"tool_input\":{\"file_path\":\"$dir/$1\"}}" | CLAUDE_PROJECT_DIR=$dir .claude/hooks/lint-changed.sh 2>&1; }
+  lint() { echo "{\"tool_input\":{\"file_path\":\"$dir/$1\"}}" | CLAUDE_PROJECT_DIR=$dir .harness/hooks/lint-changed.sh 2>&1; }
   expect() {
     local want=$1 file=$2 needle=$3 out code=0
     out=$(lint "$file") || code=$?
@@ -28,12 +28,12 @@ for fx in "$root"/fixtures/*/; do
   }
   blocks() {
     local out code=0
-    out=$(CLAUDE_PROJECT_DIR=$dir .claude/hooks/check-all.sh 2>&1) || code=$?
+    out=$(CLAUDE_PROJECT_DIR=$dir .harness/hooks/check-all.sh 2>&1) || code=$?
     if [[ $code == 2 && $out == *"$1"* ]]; then ok "check-all blocks ($1)"; else bad "check-all ($1): exit $code"; echo "$out" | tail -8; fi
   }
   passes() {
     local out
-    if out=$(CLAUDE_PROJECT_DIR=$dir .claude/hooks/check-all.sh 2>&1); then ok "check-all passes clean"; else bad "check-all blocks clean project"; echo "$out" | tail -8; fi
+    if out=$(CLAUDE_PROJECT_DIR=$dir .harness/hooks/check-all.sh 2>&1); then ok "check-all passes clean"; else bad "check-all blocks clean project"; echo "$out" | tail -8; fi
   }
 
   if jq -e '.enabledPlugins // {} | length > 0' .claude/settings.json >/dev/null; then
@@ -43,7 +43,7 @@ for fx in "$root"/fixtures/*/; do
   fi
   if grep -q 'end-to-end' CLAUDE.md; then ok "CLAUDE.md testing rule"; else bad "CLAUDE.md testing rule missing"; fi
 
-  bunonly() { echo "{\"tool_input\":{\"command\":\"$1\"}}" | .claude/hooks/bun-only.sh >/dev/null 2>&1; }
+  bunonly() { echo "{\"tool_input\":{\"command\":\"$1\"}}" | .harness/hooks/bun-only.sh >/dev/null 2>&1; }
   for c in "npm install x" "cd a && npx foo" "yarn add x"; do
     if bunonly "$c"; then bad "bun-only allowed: $c"; else ok "bun-only blocks: $c"; fi
   done
@@ -51,7 +51,7 @@ for fx in "$root"/fixtures/*/; do
     if bunonly "$c"; then ok "bun-only allows: $c"; else bad "bun-only blocked: $c"; fi
   done
 
-  prreview() { echo "{\"tool_input\":{\"command\":\"$1\"}}" | .claude/hooks/pr-review.sh 2>&1; }
+  prreview() { echo "{\"tool_input\":{\"command\":\"$1\"}}" | .harness/hooks/pr-review.sh 2>&1; }
   if out=$(prreview "gh pr create --fill"); then bad "pr-review silent on gh pr create"; elif [[ $out == *"codex review"* ]]; then ok "pr-review asks for review"; else bad "pr-review message"; fi
   if prreview "gh pr view" >/dev/null; then ok "pr-review ignores other gh"; else bad "pr-review fired on gh pr view"; fi
 

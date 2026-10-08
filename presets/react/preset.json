@@ -17,6 +17,6 @@
     }
   },
   "check": [
-    "\"$ROOT\"/.claude/hooks/check-og.sh"
+    "\"$ROOT\"/.harness/hooks/check-og.sh"
   ]
 }
