@@ -1,6 +1,14 @@
 {
-  "detect": ["tsconfig.json"],
+  "detect": [
+    "tsconfig.json"
+  ],
   "deps": "npm i -D eslint typescript-eslint typescript",
+  "global": "npm i -g typescript-language-server typescript",
+  "settings": {
+    "enabledPlugins": {
+      "typescript-lsp@claude-plugins-official": true
+    }
+  },
   "hooks": {
     "lint_match": "\\.(ts|tsx|mts|cts)$",
     "lint": "npx eslint --max-warnings 0",

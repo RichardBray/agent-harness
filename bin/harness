@@ -37,8 +37,10 @@ init() {
     mv "$s.tmp" "$s"
     echo "hook $s"
   fi
+  jq -s '.[0] * (.[1].settings // {})' "$s" "$p/preset.json" > "$s.tmp" && mv "$s.tmp" "$s"
 
   echo "next: $(jq -r .deps "$p/preset.json")"
+  jq -r '.global // empty | "and:  " + .' "$p/preset.json"
 }
 
 case ${1:-} in

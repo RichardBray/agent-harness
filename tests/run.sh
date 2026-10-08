@@ -23,6 +23,12 @@ for fx in "$root"/fixtures/*/; do
     fi
   }
 
+  if jq -e --slurpfile p "$root/presets/$stack/preset.json" '.enabledPlugins // {} | contains($p[0].settings.enabledPlugins // {})' .claude/settings.json >/dev/null; then
+    echo "ok   $stack lsp plugin enabled"
+  else
+    echo "FAIL $stack lsp plugin not enabled"; fail=1
+  fi
+
   expect 0 src/good.ts ""
   expect 2 src/bad.ts "No \`as\` casts"
   expect 2 src/bad.ts "No console"
