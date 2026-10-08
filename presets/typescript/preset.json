@@ -18,8 +18,8 @@
   },
   "hooks": {
     "lint_match": "\\.(ts|tsx|mts|cts)$",
-    "format": "bunx oxfmt",
-    "lint": "bunx oxlint --type-aware --deny-warnings",
+    "format": "bunx oxfmt \"$1\"",
+    "lint": "bunx oxlint --type-aware --deny-warnings \"$1\"",
     "check": [
       "bunx tsc --noEmit --strict --noUncheckedIndexedAccess",
       "bunx oxlint --type-aware --deny-warnings .",
