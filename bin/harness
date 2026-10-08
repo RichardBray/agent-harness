@@ -105,8 +105,22 @@ init() {
   printf '%s' "$runs"
 }
 
+baseline() {
+  [ -f .claude/harness.json ] || { echo "run harness init first" >&2; exit 1; }
+  export ROOT=$PWD
+  rm -rf .claude/baseline
+  mkdir -p .claude/baseline
+  local cmd out
+  while IFS= read -r cmd; do
+    out=$(bash -c "$cmd" 2>&1) && continue
+    sed -E 's/[0-9]+/N/g' <<< "$out" | sort > ".claude/baseline/$(printf %s "$cmd" | shasum | cut -c1-12)"
+    echo "baselined $(wc -l < ".claude/baseline/$(printf %s "$cmd" | shasum | cut -c1-12)" | tr -d ' ') lines: $cmd"
+  done < <(jq -r '.check[]' .claude/harness.json)
+}
+
 case ${1:-} in
   init) shift; init "$@" ;;
+  baseline) baseline ;;
   list) ls "$root/presets" ;;
-  *) echo "usage: harness init [preset] | list" >&2; exit 1 ;;
+  *) echo "usage: harness init [preset] | baseline | list" >&2; exit 1 ;;
 esac

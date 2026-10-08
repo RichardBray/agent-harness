@@ -38,3 +38,15 @@ echo 'export const orphan = 1;' > src/orphan.ts
 blocks "Unused code"
 rm src/orphan.ts
 passes
+
+printf 'export const a = JSON.parse("1") as number;\nexport const b = 2;\n' > src/legacy.ts
+echo 'export { a, b } from "./legacy.js";' >> src/index.ts
+blocks "No \`as\` casts"
+"$root/bin/harness" baseline >/dev/null
+passes
+printf 'export const c = JSON.parse("1") as string;\n' >> src/legacy.ts
+echo 'export { c } from "./legacy.js";' >> src/index.ts
+blocks "New issues"
+rm -rf .claude/baseline src/legacy.ts
+cp "$fx/src/index.ts" src/index.ts
+passes
