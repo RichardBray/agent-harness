@@ -1,0 +1,22 @@
+{
+  "detect": [
+    "Cargo.toml"
+  ],
+  "deps": "env -u RUSTUP_TOOLCHAIN rustup component add clippy rustfmt && env -u RUSTUP_TOOLCHAIN cargo install --locked cargo-deny",
+  "settings": {
+    "enabledPlugins": {
+      "rust-analyzer-lsp@claude-plugins-official": true
+    }
+  },
+  "hooks": {
+    "lint_match": "\\.rs$",
+    "format": "env -u RUSTUP_TOOLCHAIN cargo fmt",
+    "lint": "env -u RUSTUP_TOOLCHAIN cargo clippy -q --all-targets -- -D warnings -W clippy::pedantic -W clippy::unwrap_used -W clippy::expect_used -W clippy::dbg_macro -W clippy::todo -W clippy::unimplemented",
+    "check": [
+      "env -u RUSTUP_TOOLCHAIN cargo fmt --check",
+      "env -u RUSTUP_TOOLCHAIN cargo clippy -q --all-targets -- -D warnings -W clippy::pedantic -W clippy::unwrap_used -W clippy::expect_used -W clippy::dbg_macro -W clippy::todo -W clippy::unimplemented",
+      "env -u RUSTUP_TOOLCHAIN cargo test -q",
+      "env -u RUSTUP_TOOLCHAIN cargo deny check -s"
+    ]
+  }
+}
