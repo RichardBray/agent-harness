@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
+
+detect() {
+  for p in "$root"/presets/*/; do
+    for f in $(jq -r '.detect[]' "$p/preset.json"); do
+      [ -e "$f" ] && { basename "$p"; return; }
+    done
+  done
+  echo "no preset matches; see: harness list" >&2
+  exit 1
+}
+
+add() {
+  if [ -e "$2" ]; then echo "skip $2 (exists)"; else mkdir -p "$(dirname "$2")"; cp "$1" "$2"; echo "add  $2"; fi
+}
+
+init() {
+  local stack=${1:-$(detect)} p
+  p="$root/presets/$stack"
+  [ -d "$p" ] || { echo "no preset: $stack" >&2; exit 1; }
+
+  for f in "$root"/core/hooks/*.sh; do add "$f" ".claude/hooks/$(basename "$f")"; done
+  (cd "$p/files" && find . -type f) | while read -r f; do add "$p/files/$f" "${f#./}"; done
+  local t; t=$(mktemp)
+  jq .hooks "$p/preset.json" > "$t" && add "$t" .claude/harness.json; rm "$t"
+
+  local s=.claude/settings.json
+  if grep -qs lint-changed.sh "$s"; then
+    echo "skip $s (hooks present)"
+  else
+    [ -e "$s" ] || echo '{}' > "$s"
+    jq -s '.[1].hooks as $h | .[0]
+      | .hooks.PostToolUse = ((.hooks.PostToolUse // []) + $h.PostToolUse)
+      | .hooks.Stop = ((.hooks.Stop // []) + $h.Stop)' "$s" "$root/core/settings.json" > "$s.tmp"
+    mv "$s.tmp" "$s"
+    echo "hook $s"
+  fi
+
+  echo "next: $(jq -r .deps "$p/preset.json")"
+}
+
+case ${1:-} in
+  init) shift; init "$@" ;;
+  list) ls "$root/presets" ;;
+  *) echo "usage: harness init [stack] | list" >&2; exit 1 ;;
+esac
