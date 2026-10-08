@@ -2,14 +2,46 @@
 set -euo pipefail
 root=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
 
-detect() {
-  for p in "$root"/presets/*/; do
-    for f in $(jq -r '.detect[]' "$p/preset.json"); do
-      [ -e "$f" ] && { basename "$p"; return; }
+dirs() {
+  echo .
+  find . -mindepth 1 -maxdepth 3 \( -name node_modules -o -name target -o -name .git -o -name dist \) -prune \
+    -o \( -name package.json -o -name Cargo.toml \) -print | xargs -n1 dirname | sed 's|^\./||' | sort -u
+}
+
+matches() {
+  local pj=$1 d=$2 f
+  for f in $(jq -r '.detect[]?' "$pj"); do compgen -G "$d/$f" >/dev/null && return 0; done
+  [ -f "$d/package.json" ] || return 1
+  jq -e --slurpfile p "$pj" '[.dependencies, .devDependencies] | map(. // {} | keys) | add // []
+    | any(. as $k | $p[0].detect_dep // [] | index($k))' "$d/package.json" >/dev/null
+}
+
+plan() {
+  local name pj d planned=""
+  if [[ -n ${1:-} ]]; then
+    planned="$1 ."$'\n'
+  else
+    for pj in "$root"/presets/*/preset.json; do
+      name=$(basename "$(dirname "$pj")")
+      if [[ $(jq -r '.scope // "root"' "$pj") == root ]]; then
+        matches "$pj" . && planned+="$name ."$'\n'
+        continue
+      fi
+      for d in $(dirs); do
+        while read -r n pd; do
+          [[ $n == "$name" && ( $pd == . || $d == "$pd"/* ) ]] && continue 2
+        done <<< "$planned"
+        matches "$pj" "$d" && planned+="$name $d"$'\n'
+      done
     done
+  fi
+  for name in $(awk 'NF {print $1}' <<< "$planned" | sort -u); do
+    local req; req=$(jq -r '.requires // empty' "$root/presets/$name/preset.json")
+    [[ -z $req ]] || grep -q "^$req " <<< "$planned" || planned="$req ."$'\n'"$planned"
   done
-  echo "no preset matches; see: harness list" >&2
-  exit 1
+  # root-scoped first, so layers can extend their config
+  grep -E ' \.$' <<< "$planned" || true
+  grep -vE ' \.$' <<< "$planned" | grep . || true
 }
 
 add() {
@@ -17,28 +49,47 @@ add() {
 }
 
 init() {
-  local stack=${1:-$(detect)}
-  local p="$root/presets/$stack"
-  [ -d "$p" ] || { echo "no preset: $stack" >&2; exit 1; }
+  local entries; entries=$(plan "${1:-}")
+  [ -n "$entries" ] || { echo "no preset matches; see: harness list" >&2; exit 1; }
 
   for f in "$root"/core/hooks/*.sh; do add "$f" ".claude/hooks/$(basename "$f")"; done
-  (cd "$p/files" && find . -type f) | while read -r f; do add "$p/files/$f" "${f#./}"; done
-  local t; t=$(mktemp)
-  jq .hooks "$p/preset.json" > "$t"
-  add "$t" .claude/harness.json; rm "$t"
 
   local s=.claude/settings.json
   if grep -qs lint-changed.sh "$s"; then
-    echo "skip $s (hooks present)"
+    echo "skip $s hooks (present)"
   else
     [ -e "$s" ] || echo '{}' > "$s"
-    jq -s '.[1].hooks as $h | .[0]
-      | .hooks.PostToolUse = ((.hooks.PostToolUse // []) + $h.PostToolUse)
-      | .hooks.Stop = ((.hooks.Stop // []) + $h.Stop)' "$s" "$root/core/settings.json" > "$s.tmp"
-    mv "$s.tmp" "$s"
+    jq -s '.[1].hooks as $h | .[0] | reduce ($h | keys[]) as $k (.; .hooks[$k] = ((.hooks[$k] // []) + $h[$k]))' \
+      "$s" "$root/core/settings.json" > "$s.tmp" && mv "$s.tmp" "$s"
     echo "hook $s"
   fi
-  jq -s '.[0] * (.[1].settings // {})' "$s" "$p/preset.json" > "$s.tmp" && mv "$s.tmp" "$s"
+
+  local edits='[]' checks='[]' runs="" name d pj pre dest
+  while read -r name d; do
+    pj="$root/presets/$name/preset.json"
+    pre=""; [[ $d == . ]] || pre="cd $d && "
+    echo "-- $name ($d)"
+    if [ -d "$root/presets/$name/files" ]; then
+      while read -r f; do
+        dest=${f#./}; [[ $d == . ]] || dest="$d/$dest"
+        add "$root/presets/$name/files/$f" "$dest"
+      done < <(cd "$root/presets/$name/files" && find . -type f)
+    fi
+    edits=$(jq --arg pre "$pre" --arg d "$d" --argjson e "$edits" '$e + [.edit // empty
+      | .match = (if $d == "." then .match else "^" + $d + "/.*" + .match end)
+      | .lint = $pre + .lint | if .format then .format = $pre + .format else . end]' "$pj")
+    checks=$(jq --arg pre "$pre" --argjson c "$checks" '$c + [.check[]? | $pre + .]' "$pj")
+    jq -s '.[0] * (.[1].settings // {})' "$s" "$pj" > "$s.tmp" && mv "$s.tmp" "$s"
+    if jq -e .oxlint "$pj" >/dev/null && [ -e .oxlintrc.json ]; then
+      jq -s '.[1].oxlint as $o | .[0] * ($o | del(.plugins)) | .plugins = ((.plugins // []) + ($o.plugins // []) | unique)' \
+        .oxlintrc.json "$pj" > .oxlintrc.tmp && mv .oxlintrc.tmp .oxlintrc.json
+    fi
+    if jq -e .deps "$pj" >/dev/null; then runs+="run: $pre$(jq -r .deps "$pj")"$'\n'; fi
+  done <<< "$entries"
+
+  local t; t=$(mktemp)
+  jq -n --argjson e "$edits" --argjson c "$checks" '{edit: $e, check: $c}' > "$t"
+  add "$t" .claude/harness.json; rm "$t"
 
   if grep -qs '^## Testing' CLAUDE.md; then
     echo "skip CLAUDE.md (has ## Testing)"
@@ -47,12 +98,11 @@ init() {
     echo "add  CLAUDE.md ## Testing"
   fi
 
-  echo "next: $(jq -r .deps "$p/preset.json")"
-  jq -r '.global // empty | "and:  " + .' "$p/preset.json"
+  printf '%s' "$runs"
 }
 
 case ${1:-} in
   init) shift; init "$@" ;;
   list) ls "$root/presets" ;;
-  *) echo "usage: harness init [stack] | list" >&2; exit 1 ;;
+  *) echo "usage: harness init [preset] | list" >&2; exit 1 ;;
 esac

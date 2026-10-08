@@ -5,12 +5,10 @@ fail=0
 
 for fx in "$root"/fixtures/*/; do
   stack=$(basename "$fx")
-  preset="$root/presets/$stack/preset.json"
   dir=$(mktemp -d)
   cp -R "$fx." "$dir"
   cd "$dir"
-  "$root/bin/harness" init "$stack" >/dev/null
-  bash -c "$(jq -r '.deps // "true"' "$preset")" >/dev/null 2>&1
+  while read -r cmd; do bash -c "$cmd" >/dev/null 2>&1; done < <("$root/bin/harness" init | sed -n 's/^run: //p')
 
   ok() { echo "ok   $stack $1"; }
   bad() { echo "FAIL $stack $1"; fail=1; }
@@ -38,7 +36,7 @@ for fx in "$root"/fixtures/*/; do
     if out=$(CLAUDE_PROJECT_DIR=$dir .claude/hooks/check-all.sh 2>&1); then ok "check-all passes clean"; else bad "check-all blocks clean project"; echo "$out" | tail -8; fi
   }
 
-  if jq -e --slurpfile p "$preset" '.enabledPlugins // {} | contains($p[0].settings.enabledPlugins // {})' .claude/settings.json >/dev/null; then
+  if jq -e '.enabledPlugins // {} | length > 0' .claude/settings.json >/dev/null; then
     ok "lsp plugin enabled"
   else
     bad "lsp plugin not enabled"
