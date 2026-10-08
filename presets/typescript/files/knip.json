@@ -1,4 +1,12 @@
 {
-  "ignore": [".harness/**"],
-  "ignoreDependencies": ["eslint", "typescript-eslint", "oxlint", "oxlint-tsgolint", "oxfmt", "jscpd", "knip"]
+  "ignore": [
+    ".harness/**"
+  ],
+  "ignoreDependencies": [
+    "oxlint",
+    "oxlint-tsgolint",
+    "oxfmt",
+    "jscpd",
+    "knip"
+  ]
 }

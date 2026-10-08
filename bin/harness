@@ -17,21 +17,14 @@ add() {
 }
 
 init() {
-  local stack="" variant=""
-  for a in "$@"; do case $a in --*) variant=${a#--} ;; *) stack=$a ;; esac; done
-  stack=${stack:-$(detect)}
+  local stack=${1:-$(detect)}
   local p="$root/presets/$stack"
   [ -d "$p" ] || { echo "no preset: $stack" >&2; exit 1; }
-  variant=${variant:-$(jq -r '.variants | keys_unsorted[0]' "$p/preset.json")}
-  local v; v=$(jq --arg v "$variant" '.variants[$v] // empty' "$p/preset.json")
-  [ -n "$v" ] || { echo "no variant: $variant ($(jq -r '.variants | keys | join(", ")' "$p/preset.json"))" >&2; exit 1; }
 
   for f in "$root"/core/hooks/*.sh; do add "$f" ".claude/hooks/$(basename "$f")"; done
-  for d in "$p/files" "$p/$variant"; do
-    (cd "$d" && find . -type f) | while read -r f; do add "$d/$f" "${f#./}"; done
-  done
+  (cd "$p/files" && find . -type f) | while read -r f; do add "$p/files/$f" "${f#./}"; done
   local t; t=$(mktemp)
-  jq --argjson v "$v" '.hooks * $v.hooks + {check: (.hooks.check + $v.hooks.check)}' "$p/preset.json" > "$t"
+  jq .hooks "$p/preset.json" > "$t"
   add "$t" .claude/harness.json; rm "$t"
 
   local s=.claude/settings.json
@@ -47,12 +40,12 @@ init() {
   fi
   jq -s '.[0] * (.[1].settings // {})' "$s" "$p/preset.json" > "$s.tmp" && mv "$s.tmp" "$s"
 
-  echo "next: $(jq -r .deps <<< "$v")"
+  echo "next: $(jq -r .deps "$p/preset.json")"
   jq -r '.global // empty | "and:  " + .' "$p/preset.json"
 }
 
 case ${1:-} in
   init) shift; init "$@" ;;
-  list) for p in "$root"/presets/*/; do echo "$(basename "$p"): $(jq -r '.variants | keys_unsorted | join(", ")' "$p/preset.json")"; done ;;
-  *) echo "usage: harness init [stack] [--variant] | list" >&2; exit 1 ;;
+  list) ls "$root/presets" ;;
+  *) echo "usage: harness init [stack] | list" >&2; exit 1 ;;
 esac
