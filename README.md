@@ -1,29 +1,29 @@
 # agent-harness
 
-Strict lint and type checks wired into Claude Code hooks, so the agent gets its mistakes back as errors and has to fix them.
+Strict checks wired into Claude Code hooks, so the agent gets its mistakes back as errors and has to fix them.
 
 ```sh
 cd my-project
-~/agent-harness/bin/harness init   # or: init typescript | rust
+~/agent-harness/bin/harness init   # detects presets per folder, or: init <preset>
 ~/agent-harness/bin/harness list
 ```
 
-| | TypeScript | Rust |
-|---|---|---|
-| Before a shell command | block npm/npx/yarn/pnpm | same |
-| After each edit | TS 7 LSP, oxfmt, oxlint | rust-analyzer LSP, `cargo fmt`, clippy |
-| Before the agent stops | `tsc`, oxlint, fallow, exact pins + `bun.lock` | `cargo fmt --check`, clippy, `cargo test`, `cargo deny` |
+| Preset | Applies to | After each edit | Before the agent stops |
+|---|---|---|---|
+| typescript | `tsconfig.json` at root | TS 7 LSP, oxfmt, oxlint | `tsc`, oxlint, fallow (unused + duplicated code), exact pins + `bun.lock` |
+| react | packages depending on `react` | react-hooks and a11y rules | Open Graph tags |
+| astro | `astro.config.*` | | Open Graph tags |
+| rust | each `Cargo.toml` | rust-analyzer LSP, `cargo fmt`, clippy | `cargo fmt --check`, clippy, `cargo test`, `cargo deny` |
 
-Rust: clippy runs pedantic and bans `unwrap`/`expect`/`dbg!`/`todo!` outside tests. Every cargo call unsets `RUSTUP_TOOLCHAIN` so `rust-toolchain.toml` wins.
+Every project also gets:
+- a hook that blocks npm/npx/yarn/pnpm (use Bun)
+- after `gh pr create`, a prompt to have a different model review the PR
+- a `## Testing` section in `CLAUDE.md`: few tests, mostly end-to-end
 
-`init` also adds a `## Testing` section to `CLAUDE.md`: few tests, mostly end-to-end.
+Open Graph tags (`og:title`, `og:description`, `og:image`) are required for Astro sites and for React packages with a `wrangler.*` or `vercel.json`.
 
-Copies into the project (skips existing files), then prints the install commands:
-- `.claude/hooks/`, `.claude/harness.json`: the hooks and the commands they run
-- `.claude/settings.json`: hook wiring and the LSP plugin (TypeScript uses `ts7-lsp` from this repo's marketplace)
-- TypeScript: `.oxlintrc.json`, `.fallowrc.json`, `.harness/` (custom rules, pin check)
-- Rust: `clippy.toml`, `deny.toml`
+Rust: clippy runs pedantic and bans `unwrap`/`expect`/`dbg!`/`todo!` outside tests. Cargo calls unset `RUSTUP_TOOLCHAIN` so `rust-toolchain.toml` wins.
 
-Review and commit them. Each project adds its own rules from there.
+`init` copies hooks, configs and `.claude/harness.json` (the commands the hooks run), skips files that exist, and prints install commands. Review and commit them; each project adds its own rules from there.
 
 Test: `tests/run.sh`. Requires `bun`, `cargo` and `jq`.
