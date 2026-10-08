@@ -10,17 +10,8 @@ export default defineConfig(
     plugins: { harness },
     rules: {
       "harness/max-lines": ["error", 300],
-      "no-restricted-syntax": [
-        "error",
-        {
-          selector: "TSAsExpression:not([typeAnnotation.typeName.name='const'])",
-          message: "No `as` casts. Narrow with a type guard or parse the value (e.g. zod) instead.",
-        },
-        {
-          selector: "CallExpression[callee.object.name='console']",
-          message: "No console. Use the project logger.",
-        },
-      ],
+      "harness/no-as-cast": "error",
+      "harness/no-console": "error",
       "no-restricted-imports": [
         "error",
         {

@@ -1,17 +1,28 @@
 {
-  "detect": [
-    "tsconfig.json"
-  ],
-  "deps": "npm i -D eslint typescript-eslint typescript",
+  "detect": ["tsconfig.json"],
   "global": "npm i -g typescript-language-server typescript",
   "settings": {
-    "enabledPlugins": {
-      "typescript-lsp@claude-plugins-official": true
-    }
+    "enabledPlugins": { "typescript-lsp@claude-plugins-official": true }
   },
   "hooks": {
     "lint_match": "\\.(ts|tsx|mts|cts)$",
-    "lint": "npx eslint --max-warnings 0",
-    "check": "npx tsc --noEmit --strict --noUncheckedIndexedAccess && npx eslint --max-warnings 0 ."
+    "check": "npx tsc --noEmit --strict --noUncheckedIndexedAccess"
+  },
+  "variants": {
+    "eslint": {
+      "deps": "npm i -D typescript eslint typescript-eslint",
+      "hooks": {
+        "lint": "npx eslint --max-warnings 0",
+        "check": "npx eslint --max-warnings 0 ."
+      }
+    },
+    "ox": {
+      "deps": "npm i -D typescript oxlint oxlint-tsgolint oxfmt",
+      "hooks": {
+        "format": "npx oxfmt",
+        "lint": "npx oxlint --type-aware --deny-warnings",
+        "check": "npx oxlint --type-aware --deny-warnings ."
+      }
+    }
   }
 }
