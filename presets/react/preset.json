@@ -1,0 +1,22 @@
+{
+  "detect_dep": [
+    "react"
+  ],
+  "scope": "dir",
+  "requires": "typescript",
+  "oxlint": {
+    "plugins": [
+      "react",
+      "jsx-a11y"
+    ],
+    "rules": {
+      "react/rules-of-hooks": "error",
+      "react/exhaustive-deps": "error",
+      "jsx-a11y/alt-text": "error",
+      "react/react-in-jsx-scope": "off"
+    }
+  },
+  "check": [
+    "\"$ROOT\"/.claude/hooks/check-og.sh"
+  ]
+}

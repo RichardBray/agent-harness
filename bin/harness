@@ -39,9 +39,13 @@ plan() {
     local req; req=$(jq -r '.requires // empty' "$root/presets/$name/preset.json")
     [[ -z $req ]] || grep -q "^$req " <<< "$planned" || planned="$req ."$'\n'"$planned"
   done
-  # root-scoped first, so layers can extend their config
-  grep -E ' \.$' <<< "$planned" || true
-  grep -vE ' \.$' <<< "$planned" | grep . || true
+  # root-scoped presets first, so layers can extend their config
+  local scope
+  for scope in root dir; do
+    while read -r name d; do
+      if [[ -n $name && $(jq -r '.scope // "root"' "$root/presets/$name/preset.json") == "$scope" ]]; then echo "$name $d"; fi
+    done <<< "$planned"
+  done
 }
 
 add() {

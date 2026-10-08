@@ -1,0 +1,7 @@
+{
+  "detect": ["astro.config.*"],
+  "scope": "dir",
+  "requires": "typescript",
+  "deps": "bun add -d --exact @astrojs/check",
+  "check": ["bunx astro check", "\"$ROOT\"/.claude/hooks/check-og.sh"]
+}

@@ -2,7 +2,7 @@
   "plugins": ["typescript", "unicorn", "oxc"],
   "jsPlugins": ["./.harness/rules.mjs"],
   "categories": { "correctness": "error", "suspicious": "error" },
-  "ignorePatterns": ["node_modules/**", "dist/**", ".harness/**"],
+  "ignorePatterns": ["node_modules/**", "dist/**", "**/.harness/**"],
   "rules": {
     "harness/max-lines": ["error", 300],
     "harness/no-as-cast": "error",
