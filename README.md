@@ -1,5 +1,18 @@
 # agent-harness
 
-Per-stack presets that make a codebase hard for a coding agent to get wrong: strict lint and type configs, Claude Code hooks that feed errors back to the agent, and scaffolding for the common unit of change.
+Strict lint and type checks wired into Claude Code hooks, so the agent gets its mistakes back as errors and has to fix them.
 
-Presets are copied into a project once and committed there, not fetched at runtime.
+```sh
+cd my-project
+~/agent-harness/bin/harness init   # or: init typescript
+```
+
+Copies into the project (skips existing files):
+- `.claude/hooks/lint-changed.sh`: after each edit, lints that file
+- `.claude/hooks/check-all.sh`: before the agent stops, runs the full check
+- `.claude/harness.json`: the commands both hooks run
+- the preset's config files, e.g. `eslint.config.mjs`
+
+Then review and commit them. Each project adds its own rules from there.
+
+Test: `tests/run.sh`. Requires `jq`.
