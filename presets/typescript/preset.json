@@ -1,0 +1,9 @@
+{
+  "detect": ["tsconfig.json"],
+  "deps": "npm i -D eslint typescript-eslint typescript",
+  "hooks": {
+    "lint_match": "\\.(ts|tsx|mts|cts)$",
+    "lint": "npx eslint --max-warnings 0",
+    "check": "npx tsc --noEmit --strict --noUncheckedIndexedAccess && npx eslint --max-warnings 0 ."
+  }
+}
