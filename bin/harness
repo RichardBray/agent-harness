@@ -40,6 +40,13 @@ init() {
   fi
   jq -s '.[0] * (.[1].settings // {})' "$s" "$p/preset.json" > "$s.tmp" && mv "$s.tmp" "$s"
 
+  if grep -qs '^## Testing' CLAUDE.md; then
+    echo "skip CLAUDE.md (has ## Testing)"
+  else
+    { [ -s CLAUDE.md ] && echo; cat "$root/core/CLAUDE.md"; } >> CLAUDE.md
+    echo "add  CLAUDE.md ## Testing"
+  fi
+
   echo "next: $(jq -r .deps "$p/preset.json")"
   jq -r '.global // empty | "and:  " + .' "$p/preset.json"
 }

@@ -32,6 +32,8 @@ for fx in "$root"/fixtures/*/; do
     bad "lsp plugin not enabled"
   fi
 
+  if grep -q 'end-to-end' CLAUDE.md; then ok "CLAUDE.md testing rule"; else bad "CLAUDE.md testing rule missing"; fi
+
   bunonly() { echo "{\"tool_input\":{\"command\":\"$1\"}}" | .claude/hooks/bun-only.sh >/dev/null 2>&1; }
   for c in "npm install x" "cd a && npx foo" "yarn add x"; do
     if bunonly "$c"; then bad "bun-only allowed: $c"; else ok "bun-only blocks: $c"; fi
