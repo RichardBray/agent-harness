@@ -50,6 +50,28 @@ for fx in "$root"/fixtures/*/; do
     out=$(CLAUDE_PROJECT_DIR=$dir .claude/hooks/check-all.sh 2>&1) && code=0 || code=$?
     if [[ $code == 2 && $out == *"No console"* ]]; then ok "check-all blocks"; else bad "check-all: exit $code"; echo "$out" | tail -5; fi
     rm -rf src/bad.ts src/long.ts src/features
+
+    body='export function sum(xs: number[]): number {
+  let total = 0;
+  for (const x of xs) {
+    if (x > 0) total += x;
+    else total -= x;
+  }
+  const avg = total / xs.length;
+  return avg > 10 ? total : avg;
+}'
+    echo "$body" > src/dup1.ts
+    echo "$body" | sed 's/sum/sum2/' > src/dup2.ts
+    printf 'export { sum } from "./dup1.js";\nexport { sum2 } from "./dup2.js";\n' >> src/index.ts
+    out=$(CLAUDE_PROJECT_DIR=$dir .claude/hooks/check-all.sh 2>&1) && code=0 || code=$?
+    if [[ $code == 2 && $out == *"Duplicated code"* ]]; then ok "check-all blocks duplication"; else bad "duplication: exit $code"; echo "$out" | tail -5; fi
+    rm src/dup1.ts src/dup2.ts
+    cp "$fx/src/index.ts" src/index.ts
+
+    echo 'export const orphan = 1;' > src/orphan.ts
+    out=$(CLAUDE_PROJECT_DIR=$dir .claude/hooks/check-all.sh 2>&1) && code=0 || code=$?
+    if [[ $code == 2 && $out == *"Unused code"* ]]; then ok "check-all blocks unused code"; else bad "unused: exit $code"; echo "$out" | tail -5; fi
+    rm src/orphan.ts
     if CLAUDE_PROJECT_DIR=$dir .claude/hooks/check-all.sh; then ok "check-all passes clean"; else bad "check-all blocks clean project"; fi
 
     cd "$root"

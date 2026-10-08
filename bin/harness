@@ -31,7 +31,7 @@ init() {
     (cd "$d" && find . -type f) | while read -r f; do add "$d/$f" "${f#./}"; done
   done
   local t; t=$(mktemp)
-  jq --argjson v "$v" '.hooks * $v.hooks + {check: ([.hooks.check, $v.hooks.check] | join(" && "))}' "$p/preset.json" > "$t"
+  jq --argjson v "$v" '.hooks * $v.hooks + {check: (.hooks.check + $v.hooks.check)}' "$p/preset.json" > "$t"
   add "$t" .claude/harness.json; rm "$t"
 
   local s=.claude/settings.json
